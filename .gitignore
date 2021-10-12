@@ -1,3 +1,7 @@
+# Jupyter files
+.cache
+.ipynb_checkpoints
+
 # My developer keys file.
 keys.csv
 
