@@ -1,19 +1,11 @@
 import requests
 import spotipy
-import pandas as pd
-from spotipy import cache_handler
-import numpy as np
-from spotipy.oauth2 import SpotifyClientCredentials
-from spotipy.oauth2 import SpotifyOAuth, CacheHandler
-import lyricsgenius
+from spotipy.oauth2 import SpotifyOAuth
 import json
 import uuid
 import time
 from os.path import exists
 import urllib
-
-# General libraries.
-import re
 import numpy as np
 import pandas as pd
 
@@ -59,10 +51,6 @@ def index():
       username=sessionid)
    )
    return str(sp.current_user_recently_played())
-
-@app.route("/login/success")
-def close_me():
-   return "You can close this tab!"
 
 @app.route('/login')
 def login():
