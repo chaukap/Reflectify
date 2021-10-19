@@ -1,0 +1,20 @@
+<html>
+    <head>
+        <head>
+            <meta charset="UTF-8">
+            <link rel="stylesheet" href="{{ url_for('static', filename= 'css/style.css') }}">
+            <title>Reflectify | Lyrics</title>
+        </head> 
+    </head>
+    <body>
+        <span>
+            {% for lyric in lyrics %}
+                <div>
+                    <h4>
+                        {{lyric}}
+                    </h4>
+                </div>
+            {% endfor %}
+        </span>
+    </body>
+</html>

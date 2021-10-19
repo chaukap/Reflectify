@@ -8,9 +8,12 @@ from os.path import exists
 import urllib
 import numpy as np
 import pandas as pd
+import lyricsgenius
 
-from flask import Flask, make_response, request, redirect
+from flask import Flask, make_response, request, redirect, render_template
 app = Flask(__name__)
+
+scope = "user-read-recently-played user-read-private user-read-email"
 
 def authorize(request):
     keys = pd.read_csv("keys.csv")
@@ -24,25 +27,44 @@ def authorize(request):
           "response_type": "code",
           "redirect_uri": keys.RedirectUri[0],
           "client_id": keys.SpotifyClientId[0],
-          "scope": "user-read-recently-played"
+          "scope": scope
        }
-       print("https://accounts.spotify.com/authorize?" + urllib.parse.urlencode(data))
        return redirect("https://accounts.spotify.com/authorize?" + urllib.parse.urlencode(data), code=302)
+    
     return "success"
 
 @app.route('/')
 def index():
    authorization = authorize(request)
    if(authorization != "success"):
-      return authorization
+      return render_template('index.html')
 
    keys = pd.read_csv("keys.csv")
    sessionid = request.cookies.get("ReflectifySession")
 
-   if(sessionid == None):
-      return make_response("Missing sessionid.")
+   sp = spotipy.Spotify(
+      auth_manager=SpotifyOAuth(client_id=keys.SpotifyClientId[0],
+      client_secret=keys.SpotifyClientSecret[0],
+      redirect_uri=keys.RedirectUri[0],
+      scope=scope,
+      username=sessionid)
+   )
+   
+   return render_template('index.html', username=sp.me()['display_name'])
 
-   print("User (" + str(sessionid) + ")")
+@app.route('/recentlyplayed')
+def recently_played():
+   authorization = authorize(request)
+   if(authorization != "success"):
+      return authorization
+
+   keys = pd.read_csv("keys.csv")
+   sessionid = request.cookies.get("ReflectifySession")
+   count = request.args.get("count")
+
+   if(count == None or int(count) < 1 or int(count) > 50):
+      count = 20
+
    sp = spotipy.Spotify(
       auth_manager=SpotifyOAuth(client_id=keys.SpotifyClientId[0],
       client_secret=keys.SpotifyClientSecret[0],
@@ -50,13 +72,27 @@ def index():
       scope="user-read-recently-played",
       username=sessionid)
    )
-   return str(sp.current_user_recently_played())
+
+   return render_template("recently_played.html", songs=sp.current_user_recently_played(int(count))['items'])
+
+@app.route("/lyrics")
+def lyrics():
+   song_name = request.args.get("song")
+   artist = request.args.get("artist")
+
+   if(song_name == None):
+      return "No song specified"
+
+   if(artist == None):
+      return "No artist specified"
+
+   keys = pd.read_csv("keys.csv")
+   genius = lyricsgenius.Genius(keys.GeniusClientAccessToken[0])
+   song = genius.search_song(song_name, artist)
+   return render_template("lyrics.html", lyrics=song.lyrics.split("\n"))
 
 @app.route('/login')
-def login():
-   ## NEXT STEPS: I NEED TO IMPLEMENT A SYSTEM TO GET an access token,
-   ## cache it with the unique sessionid, then retrieve it. 
-   keys = pd.read_csv("keys.csv")
+def login(): 
    sessionid = request.cookies.get("ReflectifySession")
    print("session id: " + str(sessionid))
 
@@ -66,10 +102,12 @@ def login():
       session = uuid.uuid4()
       response.set_cookie("ReflectifySession", str(session))
       return response
-      
-   return redirect("https://127.0.0.1:5000", code=302)
+   
+   authorization = authorize(request)
+   if(authorization != "success"):
+      return authorization
 
-   # genius = lyricsgenius.Genius(keys.GeniusClientAccessToken[0])
+   return redirect("https://127.0.0.1:5000", code=302)
 
 @app.route('/auth')
 def auth():

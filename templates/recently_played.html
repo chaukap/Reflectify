@@ -1,0 +1,16 @@
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <link rel="stylesheet" href="{{ url_for('static', filename= 'css/style.css') }}">
+        <title>Reflectify | Recently Played</title>
+    </head>
+    <body>
+        {% for song in songs %}
+            <a href="{{ url_for('lyrics', song=song['track']['name'], artist=song['track']['artists'][0]['name']) }}">
+                <h2>{{ song['track']['artists'][0]['name'] }}</h2>
+            </a>
+            <span class="badge badge-primary">{{ song['track']['name'] }}</span>
+            <hr>
+        {% endfor %}
+    </body>
+</html>

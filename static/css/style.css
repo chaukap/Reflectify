@@ -1,0 +1,33 @@
+html {
+    background-color: black;
+    padding: 5em;
+}
+
+span {
+    color: white;
+}
+
+a {
+    color: yellow;
+}
+
+button a {
+    color: black;
+    font-weight: bolder;
+}
+
+h1, h2, h3, h4 {
+    color: rgb(221, 221, 50)
+}
+
+h4 {
+    margin-top: 0.5em;
+    margin-bottom: 0.5em;
+}
+
+.button-lg {
+    height: 5em;
+    width: 11em;
+    border-radius: 2em;
+    color:gray;
+}
