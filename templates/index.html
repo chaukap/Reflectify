@@ -1,24 +1,31 @@
-<html>
-    <head>
-        <meta charset="UTF-8">
-        <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-        <title>Reflectify</title>
-    </head>
-    <body>
-        <h1>Reflectify</h1>
-        {% if username %}
-            <h2>Welcome, {{ username }}</h2>
-            <a href="{{ url_for('recently_played') }}">
-                <button class="button-lg">
-                    Recently played
-                </button>
-            </a>
-        {% else %}
-            <a href="{{ url_for('login') }}">
-                <button class="button-lg">
-                    Log in with Spotify
-                </button>
-            </a>
-        {% endif %}
-    </body>
-</html>
+{% extends "layout.html" %}
+{% block title %}Cluster Playlists{% endblock %}
+{% block head %}
+  {{ super() }}
+{% endblock %}
+{% block content %}
+  {% if username %}
+    <h2>Welcome, {{ username }}</h2>
+    <span>
+      <a href="{{ url_for('recently_played') }}">
+        <button class="button-lg">
+          Recently played
+        </button>
+      </a>
+    </span>
+    <br><br>
+    <span>
+      <a href="{{ url_for('define_clusters') }}">
+        <button class="button-lg">
+          Reorder your playlists
+        </button>
+      </a>
+    </span>
+  {% else %}
+    <a href="{{ url_for('login') }}">
+      <button class="button-lg">
+        Log in with Spotify
+      </button>
+    </a>
+  {% endif %}        
+{% endblock %}

@@ -1,0 +1,37 @@
+{% extends "layout.html" %}
+{% block title %}Cluster Playlists{% endblock %}
+{% block head %}
+    {{ super() }}
+{% endblock %}
+{% block content %}
+    <div>
+        <a href="{{ url_for('define_clusters') }}">
+            <button class="button-lg">
+                &leftarrow; Try again
+            </button>
+        </a>
+    </div>
+    {% for i in range(0, n_items) %}
+        <div class="card">
+            <div class="playlist-songs">
+                {% for song in items[i] %}
+                    <div class="song-and-artist">
+                        <div class="song-name">
+                            {{ song['song'] }}
+                        </div>
+                        <div class="artist">
+                            {{ song['artist'] }}
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+            <form action="{{ url_for('create_playlist', songs=song_id_lists[i]) }}" target="_blank" class="save-playlist-form">
+                <input name="name" id="name" required placeholder="Name">
+                <input name="songs" value="{{ song_id_lists[i] }}" hidden id="songs">
+                <button class="button-lg" type="submit">
+                    Save this playlist
+                </button>
+            </form>
+        </div>
+    {% endfor %}
+{% endblock %}

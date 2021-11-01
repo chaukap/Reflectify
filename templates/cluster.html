@@ -1,0 +1,139 @@
+{% extends "layout.html" %}
+{% block title %}Cluster Playlists{% endblock %}
+{% block head %}
+{{ super() }}
+{% endblock %}
+{% block content %}
+<h1>
+    Reorder your playlists
+</h1>
+<div>
+    <form action="{{ url_for('clustering_results') }}">
+        <div class="metrics-options card">
+            <h3>Group By</h3>
+            <label for="include-danceability" class="switch">
+                Danceability
+                <input name="include-danceability" id="include-danceability" type="checkbox" checked>
+                <span class="slider"></span>
+            </label>
+            <br>
+            <label for="include-energy" class="switch">
+                Energy
+                <input name="include-energy" id="include-energy" type="checkbox" checked>
+                <span class="slider"></span>
+            </label>
+            <br>
+            <label for="include-key" class="switch">
+                Key
+                <input name="include-key" id="include-key" type="checkbox" checked>
+                <span class="slider"></span>
+            </label>
+            <br>
+            <label for="include-loudness" class="switch">
+                Loudness
+                <input name="include-loudness" id="include-loudness" type="checkbox" checked>
+                <span class="slider"></span>
+            </label>
+            <br>
+            <label for="include-mode" class="switch">
+                Mode
+                <input name="include-mode" id="include-mode" type="checkbox" checked>
+                <span class="slider"></span>
+            </label>
+            <br>
+            <label for="include-speechiness" class="switch">
+                Speechiness
+                <input name="include-speechiness" id="include-speechiness" type="checkbox" checked>
+                <span class="slider"></span>
+            </label>
+            <br>
+            <label for="include-acousticness" class="switch">
+                Acousticness
+                <input name="include-acousticness" id="include-acousticness" type="checkbox" checked>
+                <span class="slider"></span>
+            </label>
+            <br>
+            <label for="include-instrumentalness" class="switch">
+                Instrumentalness
+                <input name="include-instrumentalness" id="include-instrumentalness" type="checkbox" checked>
+                <span class="slider"></span>
+            </label>
+            <br>
+            <label for="include-liveness" class="switch">
+                Liveness
+                <input name="include-liveness" id="include-liveness" type="checkbox" checked>
+                <span class="slider"></span>
+            </label>
+            <br>
+            <label for="include-valence" class="switch">
+                Valence
+                <input name="include-valence" id="include-valence" type="checkbox" checked>
+                <span class="slider"></span>
+            </label>
+            <br>
+            <label for="include-tempo" class="switch">
+                Tempo
+                <input name="include-tempo" id="include-tempo" type="checkbox" checked>
+                <span class="slider"></span>
+            </label>
+            <br>
+
+            <label for="include-time-signature" class="switch">
+                Time Signature
+                <input name="include-time-signature" id="include-time-signature" type="checkbox">
+                <span class="slider"></span>
+            </label>
+            <br>
+
+            <label for="include-duration" class="switch">
+                Song Length
+                <input name="include-duration" id="include-duration" type="checkbox">
+                <span class="slider"></span>
+            </label>
+            <br><br>
+        </div>
+        
+        <div class="card">
+            <label for="clusters">Clusters:</label>
+            <select name="clusters" id="clusters">
+                <option value="2">2</option>
+                <option value="3">3</option>
+                <option value="4">4</option>
+                <option value="5">5</option>
+                <option value="6" selected>6</option>
+                <option value="7">7</option>
+                <option value="8">8</option>
+                <option value="9">9</option>
+                <option value="10">10</option>
+                <option value="11">11</option>
+                <option value="12">12</option>
+                <option value="13">13</option>
+            </select>
+            <br><br>
+            <label for="distance-metric">Distance Metric:</label>
+            <select name="distance-metric" id="distance-metric">
+                <option value="complete" title="The maximum distances between all observations of the two sets">Complete
+                </option>
+                <option value="ward" title="Minimizes the variance of the clusters being merged">Ward</option>
+                <option value="average" title="The average of the distances of each observation of the two sets">Average
+                </option>
+                <option value="single" title="The minimum distances between all observations of the two sets">Single
+                </option>
+            </select>
+            <br><br>
+
+            <label for="playlist">Playlist:</label>
+            <select name="playlist" id="playlist">
+                {% for playlist in playlists %}
+                <option value="{{ playlist['id'] }}">{{ playlist['name'] }}</option>
+                {% endfor %}
+            </select>
+            <br><br>
+    
+            <button class="button-go" type="submit">
+                Go
+            </span>
+        </div>
+    </form>
+</div>
+{% endblock %}

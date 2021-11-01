@@ -1,0 +1,12 @@
+Flask
+requests
+spotipy
+spotipy
+uuid
+numpy
+pandas
+gunicorn
+lyricsgenius 
+flask_sslify
+mysql-connector-python
+sklearn

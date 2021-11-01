@@ -1,0 +1,44 @@
+<!doctype html>
+<html>
+
+<head>
+  {% block head %}
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <title>{% block title %}{% endblock %} | Reflectify</title>
+  <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}">
+  {% endblock %}
+</head>
+
+<body>
+  <div id="header">
+    <ul class="topnav">
+      <li><a class="active" href="{{ url_for('index') }}" id="logo">Reflectify</a></li>
+      <li class="right"><a>{{ username }}</a></li>
+      <li class="right"><a href="{{ url_for('define_clusters') }}">Reorder your playlists</a></li>
+      <li class="right"><a href="{{ url_for('recently_played') }}">Recently played</a></li>
+    </ul>
+  </div>
+  <div id="content">
+    {% block content %}{% endblock %}
+  </div>
+  <div id="footer">
+    {% block footer %}
+    {% endblock %}
+  </div>
+  <canvas class="background"></canvas>
+  <script src="{{ url_for('static', filename='javascript/particles.min.js') }}"></script>
+</body>
+
+<script>
+  window.onload = function() {
+    Particles.init({
+    selector: '.background',
+    color: '#a8d6d9',
+    connectParticles: true
+    });
+  }; 
+</script>
+
+</html>
