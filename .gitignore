@@ -3,8 +3,9 @@
 # Jupyter files
 .ipynb_checkpoints
 
-# My developer keys file.
+# My developer key and ssl keys.
 keys.csv
+*.pem
 
 # History files
 .Rhistory

@@ -1,7 +1,6 @@
 Flask
 requests
 spotipy
-spotipy
 uuid
 numpy
 pandas
@@ -10,3 +9,6 @@ lyricsgenius
 flask_sslify
 mysql-connector-python
 sklearn
+Pillow
+matplotlib
+wordcloud

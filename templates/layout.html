@@ -15,9 +15,16 @@
   <div id="header">
     <ul class="topnav">
       <li><a class="active" href="{{ url_for('index') }}" id="logo">Reflectify</a></li>
-      <li class="right"><a>{{ username }}</a></li>
-      <li class="right"><a href="{{ url_for('define_clusters') }}">Reorder your playlists</a></li>
-      <li class="right"><a href="{{ url_for('recently_played') }}">Recently played</a></li>
+      {% if username %}
+        <li class="right" id="user-name">
+          <a id="display-name">{{ username }}</a>
+          <a id="log-out" href="{{ url_for('logout') }}">Log Out</a>
+        </li>
+        <li class="right"><a href="{{ url_for('define_clusters') }}">Reorder your playlists</a></li>
+        <li class="right"><a href="{{ url_for('make_wordcloud') }}">Make a Word Cloud</a></li>
+      {% else %}
+        <li class="right"><a href="{{ url_for('login') }}">Log in</a></li>
+      {% endif %}
     </ul>
   </div>
   <div id="content">

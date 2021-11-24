@@ -1,0 +1,27 @@
+{% extends "layout.html" %}
+{% block title %}Word Cloud{% endblock %}
+{% block head %}
+{{ super() }}
+{% endblock %}
+{% block content %}
+<h1>
+    Make a Wordcloud
+</h1>
+<div>
+    <form action="{{ url_for('show_wordcloud') }}">   
+        <div class="card">
+            <label for="playlist">Playlist:</label>
+            <select name="playlist" id="playlist">
+                {% for playlist in playlists %}
+                <option value="{{ playlist['id'] }}">{{ playlist['name'] }}</option>
+                {% endfor %}
+            </select>
+            <br><br>
+    
+            <button class="button-go" type="submit">
+                Make Word Cloud
+            </span>
+        </div>
+    </form>
+</div>
+{% endblock %}

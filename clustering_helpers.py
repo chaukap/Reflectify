@@ -7,18 +7,18 @@ import spotipy
 def get_all_items_for_playlist(playlist_id, spotify_client):
     playlist = spotify_client.playlist(playlist_id)
     tracks = pd.DataFrame(playlist['tracks']['items'])
-    print(tracks.track.head())
+    tracks = tracks[[i is not None for i in tracks.track]]
+    tracks.index = np.arange(0, tracks.shape[0])
     id = tracks.apply(lambda x: x.track['id'], axis=1)
     track_names = tracks.apply(lambda x: x.track['name'], axis=1)
     track_primary_artist = tracks.apply(lambda x: x.track['artists'][0]['name'], axis=1)
     is_track = tracks.apply(lambda x: x.track['type'] == 'track', axis=1)
     playlist_name = playlist['name']
     all_items = pd.DataFrame(
-            [id, track_names, track_primary_artist, pd.Series(np.repeat(playlist_name, is_track.shape[0])), is_track]).transpose()
+            [id, track_names, track_primary_artist, pd.Series(np.repeat(playlist_name, tracks.shape[0])), is_track]).transpose()
 
     all_items.columns = ['id','song','artist', 'playlist', 'is_track']
     return all_items
-
 
 def get_all_items_in_all_playlists(spotify_client):
     user_playlists = pd.DataFrame(spotify_client.current_user_playlists(limit=50, offset=0)['items'])

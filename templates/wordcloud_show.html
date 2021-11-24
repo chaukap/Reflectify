@@ -1,0 +1,22 @@
+{% extends "layout.html" %}
+{% block title %}Word Cloud{% endblock %}
+{% block head %}
+{{ super() }}
+{% endblock %}
+{% block content %}
+<h1>
+    Wordcloud for {{ playlist_name }}
+</h1>
+<div>
+    <form action="{{ url_for('upload_wordcloud') }}" method="post">   
+        <div class="card">
+            <img height="350" width="350" alt="Word Cloud" src="data:image/png;base64,{{ image }}" />
+            <input hidden="hidden" name="playlist_id" id="playlist_id" value="{{ playlist_id }}" />
+            <input hidden="hidden" name="image" id="image" value="{{ image }}" />
+            <button class="button-go" type="submit">
+                Use as playlist cover
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}

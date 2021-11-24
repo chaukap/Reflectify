@@ -28,7 +28,7 @@ class SqlCacheHandler(spotipy.cache_handler.CacheHandler):
         username = keys.SessionUser[0]
         password = keys.SessionPassword[0]
         
-        self.connection = mysql.connector.connect(host=server, database=database, user=username, password=password)
+        self.connection = mysql.connector.connect(host=server, database=database, user=username, password=password, ssl_key='client-key.pem', ssl_cert='client-cert.pem', ssl_ca='server-ca.pem')
         self.cursor = self.connection.cursor()
 
     def get_cached_token(self):

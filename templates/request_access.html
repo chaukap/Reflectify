@@ -1,0 +1,17 @@
+{% extends "layout.html" %}
+{% block title %}Cluster Playlists{% endblock %}
+{% block head %}
+  {{ super() }}
+{% endblock %}
+{% block content %}
+<div class="card">
+    <h2>Reflectify is in development!</h4>
+    <h4>But don't worry, you can still get access.</h4>
+    <form action="{{ url_for('request_access') }}" method="post" class="save-playlist-form">  
+        <input type="email" class="save-playlist-input" required name="email" id="email" placeholder="Spotify email" />
+        <button class="button-lg" type="submit">
+            Request Access
+        </button>
+    </form>
+</div>
+{% endblock %}

@@ -7,9 +7,9 @@
   {% if username %}
     <h2>Welcome, {{ username }}</h2>
     <span>
-      <a href="{{ url_for('recently_played') }}">
+      <a href="{{ url_for('make_wordcloud') }}">
         <button class="button-lg">
-          Recently played
+          Turn a playlist into a word cloud of lyrics
         </button>
       </a>
     </span>

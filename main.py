@@ -1,78 +1,96 @@
 import requests
-from requests.sessions import session
 import spotipy
 from spotipy.oauth2 import SpotifyOAuth
 import json
 import uuid
 import time
 import urllib
+import io
+from PIL import Image
+import base64
 import pandas as pd
 import mysql.connector
 from flask_sslify import SSLify
 import lyricsgenius
+from wordcloud import WordCloud
 from clustering_helpers import get_all_items_in_all_playlists, get_audio_features_for_tracks, get_selected_features, get_all_items_for_playlist
+from wordcloud_helpers import clean_lyrics, grey_color_func
 from SqlCacheHandler import SqlCacheHandler
 from sklearn.cluster import AgglomerativeClustering
 from flask import Flask, make_response, request, redirect, render_template, url_for
+from os.path import exists
+import random
+import os
+import datetime
 
 app = Flask(__name__)
 sslify = SSLify(app)
 
 keys = pd.read_csv("keys.csv")
 
+environment = "production"
+
 server = keys.SessionsServer[0]
 database = keys.SessionsDb[0]
 username = keys.SessionUser[0]
 password = keys.SessionPassword[0]
 
-connection = mysql.connector.connect(host=server, database=database, user=username, password=password)
-cursor = connection.cursor()
+connection = None
+cursor = None
+if environment == "production":
+   connection = mysql.connector.connect(host=server, database=database, user=username, password=password, ssl_key='client-key.pem', ssl_cert='client-cert.pem', ssl_ca='server-ca.pem')
+   cursor = connection.cursor()
 
-scope = "user-read-recently-played user-read-private user-read-email user-library-read user-library-modify playlist-modify-public"
+scope = "user-read-recently-played user-read-private user-read-email user-library-read user-library-modify playlist-modify-public ugc-image-upload"
 
 def authorize(request):
-    sessionid = request.cookies.get("ReflectifySession")
+   sessionid = request.cookies.get("ReflectifySession")
 
-    if(sessionid == None):
-       return redirect(url_for("login"), code=302)
+   if(sessionid == None):
+      return redirect(url_for("login"), code=302)
 
-    cursor.execute(
-       "SELECT * FROM sessions WHERE session_id = '{username}'"
-       .format(username=sessionid)
-    )
-    row = cursor.fetchall()
-    if(len(row) < 1):
-       data = {
-          "response_type": "code",
-          "redirect_uri": keys.RedirectUri[0],
-          "client_id": keys.SpotifyClientId[0],
-          "scope": scope
-       }
-       return redirect("https://accounts.spotify.com/authorize?" + urllib.parse.urlencode(data), code=302)
-    elif(len(row) > 1):
-       cursor.execute("DELETE FROM sessions WHERE session_id = '{username}'".format(username=sessionid))
-       connection.commit()
-       data = {
-          "response_type": "code",
-          "redirect_uri": keys.RedirectUri[0],
-          "client_id": keys.SpotifyClientId[0],
-          "scope": scope
-       }
-       return redirect("https://accounts.spotify.com/authorize?" + urllib.parse.urlencode(data), code=302)
+   if environment == "production":
+      cursor.execute(
+         "SELECT * FROM sessions WHERE session_id = '{username}'"
+         .format(username=sessionid))
+    
+      row = cursor.fetchall()
+      if(len(row) < 1):
+         data = {
+            "response_type": "code",
+            "redirect_uri": keys.RedirectUri[0],
+            "client_id": keys.SpotifyClientId[0],
+            "scope": scope
+         }
+         return redirect("https://accounts.spotify.com/authorize?" + urllib.parse.urlencode(data), code=302)
+      elif(len(row) > 1):
+         cursor.execute("DELETE FROM sessions WHERE session_id = '{username}'".format(username=sessionid))
+         connection.commit()
+         data = {
+            "response_type": "code",
+            "redirect_uri": keys.RedirectUri[0],
+            "client_id": keys.SpotifyClientId[0],
+            "scope": scope
+         }
+         return redirect("https://accounts.spotify.com/authorize?" + urllib.parse.urlencode(data), code=302)
 
-    return "success"
+      return "success"
+   elif exists("./.cache"):
+      return "success"
+   else:
+      data = {
+         "response_type": "code",
+         "redirect_uri": keys.RedirectUri[0],
+         "client_id": keys.SpotifyClientId[0],
+         "scope": scope
+      }
+      return redirect("https://accounts.spotify.com/authorize?" + urllib.parse.urlencode(data), code=302)
 
 @app.route('/cluster/define')
 def define_clusters():
    sessionid = request.cookies.get("ReflectifySession")
 
-   sp = spotipy.Spotify(
-      auth_manager=SpotifyOAuth(client_id=keys.SpotifyClientId[0],
-      client_secret=keys.SpotifyClientSecret[0],
-      redirect_uri=keys.RedirectUri[0],
-      scope=scope,
-      cache_handler=SqlCacheHandler(sessionid))
-   )
+   sp = get_spotify_client(sessionid)
 
    user_playlists = pd.DataFrame(sp.current_user_playlists(limit=50, offset=0)['items'])[['id', 'name']]
 
@@ -91,13 +109,7 @@ def clustering_results():
    playlist = request.args.get('playlist', type=str)
    sessionid = request.cookies.get("ReflectifySession")
 
-   sp = spotipy.Spotify(
-      auth_manager=SpotifyOAuth(client_id=keys.SpotifyClientId[0],
-      client_secret=keys.SpotifyClientSecret[0],
-      redirect_uri=keys.RedirectUri[0],
-      scope=scope,
-      cache_handler=SqlCacheHandler(sessionid))
-   )
+   sp = get_spotify_client(sessionid)
 
    items = get_all_items_for_playlist(playlist, sp)
    items = items[items.is_track]
@@ -136,13 +148,7 @@ def create_playlist():
    songs = request.args.get("songs", type=str)
    name = request.args.get("name", type=str)
 
-   sp = spotipy.Spotify(
-      auth_manager=SpotifyOAuth(client_id=keys.SpotifyClientId[0],
-      client_secret=keys.SpotifyClientSecret[0],
-      redirect_uri=keys.RedirectUri[0],
-      scope=scope,
-      cache_handler=SqlCacheHandler(sessionid))
-   )
+   sp = get_spotify_client(sessionid)
 
    new_playlist = sp.user_playlist_create(sp.me()['id'], name, description="Generated by Reflectify")
    sp.user_playlist_add_tracks(sp.me()['id'], new_playlist['id'], songs.split(","))
@@ -153,70 +159,144 @@ def create_playlist():
 def index():
    authorization = authorize(request)
    if(authorization != "success"):
-      return authorization
+      return render_template('index.html', username=None)
 
    sessionid = request.cookies.get("ReflectifySession")
 
-   sp = spotipy.Spotify(
-      auth_manager=SpotifyOAuth(client_id=keys.SpotifyClientId[0],
-      client_secret=keys.SpotifyClientSecret[0],
-      redirect_uri=keys.RedirectUri[0],
-      scope=scope,
-      cache_handler=SqlCacheHandler(sessionid))
-   )
+   try:
+      sp = get_spotify_client(sessionid)
+      username = sp.me()['display_name']
+   except Exception as e:
+      print(e)
+      return redirect(url_for("signup"), code=302)
    
    return render_template('index.html', 
+      username=username)
+
+@app.route("/wordcloud/make")
+def make_wordcloud():
+   authorization = authorize(request)
+   if(authorization != "success"):
+      return authorization
+   sessionid = request.cookies.get("ReflectifySession")
+
+   sp = get_spotify_client(sessionid)
+
+   user_playlists = pd.DataFrame(sp.current_user_playlists(limit=50, offset=0)['items'])[['id', 'name']]
+
+   return render_template('wordcloud_make.html', 
+      playlists=user_playlists.to_dict('records'),
       username=sp.me()['display_name'])
 
-@app.route('/recentlyplayed')
-def recently_played():
+@app.route("/wordcloud/upload", methods = ['POST'])
+def upload_wordcloud():
    authorization = authorize(request)
    if(authorization != "success"):
       return authorization
 
+   request_data = request.values
+
+   playlist_id = request_data["playlist_id"]
+   if(playlist_id == None):
+      return "No playlist id."
+
+   image = request_data["image"]
+   if(image == None):
+      return "No image."
+
    sessionid = request.cookies.get("ReflectifySession")
-   count = request.args.get("count")
+   sp = get_spotify_client(sessionid)
 
-   if(count == None or int(count) < 1 or int(count) > 50):
-      count = 20
+   sp.playlist_upload_cover_image(playlist_id, image)
+   playlist = sp.playlist(playlist_id)
 
-   sp = spotipy.Spotify(
-      auth_manager=SpotifyOAuth(client_id=keys.SpotifyClientId[0],
-      client_secret=keys.SpotifyClientSecret[0],
-      redirect_uri=keys.RedirectUri[0],
-      scope="user-read-recently-played",
-      cache_handler=SqlCacheHandler(sessionid))
-   )
+   return redirect(playlist["external_urls"]["spotify"], code=302)
 
-   return render_template("recently_played.html", 
-      songs=sp.current_user_recently_played(int(count))['items'],
-      username=sp.me()['display_name'])
+@app.route("/wordcloud/show")
+def show_wordcloud():
+   authorization = authorize(request)
+   if(authorization != "success"):
+      return authorization
 
-@app.route("/lyrics")
-def lyrics():
-   song_name = request.args.get("song")
-   artist = request.args.get("artist")
+   playlist_id = request.args.get("playlist")
+   
+   if(playlist_id == None):
+      return "No playlist id."
+   sessionid = request.cookies.get("ReflectifySession")
 
-   if(song_name == None):
-      return "No song specified"
-
-   if(artist == None):
-      return "No artist specified"
+   sp = get_spotify_client(sessionid)
 
    genius = lyricsgenius.Genius(keys.GeniusClientAccessToken[0])
-   song = genius.search_song(song_name, artist)
-   return render_template("lyrics.html", 
-      lyrics=song.lyrics.split("\n"),
-      username=sp.me()['display_name'])
+   genius.verbose = False
+   genius.remove_section_headers = True
+   genius.skip_non_songs = False
+   
+   items = get_all_items_for_playlist(playlist_id, sp)
 
-@app.route('/login')
-def login(): 
+   # The genius api is too slow to use a large playlist
+   if items.shape[0] > 8:
+      items = items.iloc[[random.randint(0, items.shape[0] - 1) for _ in range(0, 7)]]
+
+   songs = items.apply(lambda y: genius.search_song(y.song, y.artist), axis=1)
+   lyrics = songs.map(lambda t: "" if t == None else t.lyrics)
+
+   cleaned_lyrics = lyrics.map(lambda t: clean_lyrics(t))
+   text = " ".join(cleaned_lyrics.tolist())
+   wordcloud = WordCloud(height=520, width=520).generate(text)
+   wordcloud.recolor(color_func=grey_color_func, random_state=3)
+   image = Image.frombytes('RGB', (520, 520), bytes(wordcloud.to_array()))
+
+   with io.BytesIO() as output:
+      image.save(output, format="PNG")
+      contents = output.getvalue()
+
+   playlist = sp.playlist(playlist_id)
+
+   return render_template("wordcloud_show.html", 
+      image=base64.b64encode(contents).decode(),
+      username=sp.me()['display_name'],
+      playlist_name=playlist['name'],
+      playlist_id=playlist_id)
+
+@app.route("/signup")
+def signup():
+   return render_template("request_access.html")
+
+@app.route("/request", methods = ['POST'])
+def request_access():
+   email = request.values["email"]
    sessionid = request.cookies.get("ReflectifySession")
 
-   if(sessionid == None):
-      response = make_response(redirect(url_for("index"), code=302))
-      session = uuid.uuid4()
-      response.set_cookie("ReflectifySession", str(session))
+   response = make_response(render_template("request_success.html",email=email))
+   response.set_cookie('ReflectifySession', '', expires=0)
+
+   if environment == "production" and sessionid is not None:
+      cursor.execute(
+         """DELETE FROM sessions
+            WHERE session_id = '{session_id}'"""
+                  .format(session_id=sessionid)
+      )
+      connection.commit()
+   else:
+      os.remove(".cache")
+
+   if environment == "production":
+      cursor.execute(
+         """INSERT INTO access_requests
+            VALUES ('{email}', '{time}')"""
+                  .format(email=email, time=str(datetime.datetime.utcnow()))
+      )
+      connection.commit()
+   
+   return response
+
+@app.route('/login')
+def login():
+   sessionid = request.cookies.get("ReflectifySession")
+   response = make_response(redirect(url_for("login"), code=302))
+
+   if sessionid == None:
+      response.set_cookie("ReflectifySession", str(uuid.uuid4()))
       return response
    
    authorization = authorize(request)
@@ -224,6 +304,25 @@ def login():
       return authorization
 
    return redirect(url_for("index"), code=302)
+
+@app.route("/logout")
+def logout():
+   sessionid = request.cookies.get("ReflectifySession")
+
+   response = make_response(redirect(url_for("index"), code=302))
+   response.set_cookie('ReflectifySession', '', expires=0)
+
+   if environment == "production" and sessionid is not None:
+      cursor.execute(
+         """DELETE FROM sessions
+            WHERE session_id = '{session_id}'"""
+                  .format(session_id=sessionid)
+      )
+      connection.commit()
+   else:
+      os.remove(".cache")
+
+   return response
 
 @app.route('/auth')
 def auth():
@@ -244,20 +343,47 @@ def auth():
    response_body = json.loads(response.text)
    response_body["expires_at"] = int(time.time()) + int(response_body["expires_in"])
 
-   cursor.execute(
-      """INSERT INTO sessions
-         VALUES ('{session_id}',
-                 '{access_token}',
-                 '{token_type}',
-                 {expires_in},
-                 '{refresh_token}',
-                 '{scope}',
-                 {expires_at})"""
-                 .format(**response_body, session_id=sessionid)
-   )
-   connection.commit()
+   if environment == "production":
+      cursor.execute(
+         """INSERT INTO sessions
+            VALUES ('{session_id}',
+                    '{access_token}',
+                    '{token_type}',
+                     {expires_in},
+                    '{refresh_token}',
+                    '{scope}',
+                    {expires_at})"""
+                  .format(**response_body, session_id=sessionid)
+      )
+      connection.commit()
+   else:
+      f = open(".cache", "w")
+      json.dump(response_body, f)
+      f.close()
 
    return redirect(url_for("index"), code=302)
 
+def get_spotify_client(sessionid):
+   if environment == "production":
+      return spotipy.Spotify(
+            auth_manager=SpotifyOAuth(client_id=keys.SpotifyClientId[0],
+               client_secret=keys.SpotifyClientSecret[0],
+               redirect_uri=keys.RedirectUri[0],
+               scope=scope,
+               cache_handler=SqlCacheHandler(sessionid)
+            )
+         )
+   else:
+      return spotipy.Spotify(
+            auth_manager=SpotifyOAuth(client_id=keys.SpotifyClientId[0],
+               client_secret=keys.SpotifyClientSecret[0],
+               redirect_uri=keys.RedirectUri[0],
+               scope=scope
+            )
+         )
+
 if __name__ == '__main__':
-   app.run(debug=False)
+   if environment == "production":
+      app.run()
+   else:
+      app.run(ssl_context='adhoc')
