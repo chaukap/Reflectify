@@ -8,24 +8,17 @@
     <h2>Welcome, {{ username }}</h2>
     <span>
       <a href="{{ url_for('make_wordcloud') }}">
-        <button class="button-lg">
-          Turn a playlist into a word cloud of lyrics
-        </button>
+        <img class="front-page-image" src="/static/images/WordCloudImage.png">
       </a>
     </span>
     <br><br>
     <span>
       <a href="{{ url_for('define_clusters') }}">
-        <button class="button-lg">
-          Reorder your playlists
-        </button>
+        <img class="front-page-image" src="/static/images/ClusterImage.png">
       </a>
     </span>
   {% else %}
-    <a href="{{ url_for('login') }}">
-      <button class="button-lg">
-        Log in with Spotify
-      </button>
-    </a>
+    <img class="front-page-image" src="/static/images/WordCloudImage.png">
+    <img class="front-page-image" src="/static/images/ClusterImage.png">
   {% endif %}        
 {% endblock %}

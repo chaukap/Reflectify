@@ -4,6 +4,11 @@ html, body {
     background-color: rgb(73, 73, 73);
     font-family: sans-serif;
 }
+
+.front-page-image {
+    width: 60%;
+}
+
 .background {
   position:  absolute;
   display:  block;
@@ -196,6 +201,10 @@ ul.topnav li.right {float: right;}
         font-size: 1.2em;
     }
 
+    .front-page-image {
+        width: 80%;
+    }
+
     ul.topnav li a#logo {
         font-size: 2em;
         padding: 15px 16px;
@@ -212,6 +221,10 @@ ul.topnav li.right {float: right;}
   ul.topnav li {float: none;}
   ul.topnav li a {
     padding: 8px 16px;
+  }
+
+  .front-page-image {
+    width: 100%;
   }
 
   ul.topnav li a#logo {
