@@ -6,6 +6,7 @@
 # My developer key and ssl keys.
 keys.csv
 *.pem
+email.csv
 
 # History files
 .Rhistory

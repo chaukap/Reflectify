@@ -290,6 +290,10 @@ def request_access():
    
    return response
 
+@app.route('/lanadelrey')
+def lana():
+   return render_template("Lana_network.html")
+
 @app.route('/login')
 def login():
    sessionid = request.cookies.get("ReflectifySession")
